@@ -5,11 +5,11 @@
 #include <random>
 using namespace std;
 
-int BOARD_SIZE = 9;
-int NUM_BOMBS = 10;
-vector<vector<char>> board(BOARD_SIZE, vector<char>(BOARD_SIZE, '@'));
+int BOARD_SIZE = 5;
+int NUM_BOMBS = 3;
+vector<vector<char> > board(BOARD_SIZE, vector<char>(BOARD_SIZE, '@'));
 unordered_set<int> bombs;
-vector<pair<int,int>> dirs = {{-1,-1},{-1,0},{-1,1},{0,-1},{0,1},{1,-1},{1,0},{1,1}};
+vector<pair<int,int> > dirs = {{-1,-1},{-1,0},{-1,1},{0,-1},{0,1},{1,-1},{1,0},{1,1}};
 
 bool isInBound(int x, int y){
     if(x < 0 || x >= BOARD_SIZE || y < 0 || y >= BOARD_SIZE) return false;
@@ -43,12 +43,12 @@ void showBoard(bool reveal=false){
 }
 
 /* Count the number of bombs of (r,c)'s 8 neighbors. */
-int countNeighborBombs(int r, int c){
+int countNeighboringBombs(int r, int c){
     int count = 0;
     for(auto dir: dirs){
         int x = r + dir.first;
         int y = c + dir.second;
-        if(x < 0 || x > BOARD_SIZE || y < 0 || y > BOARD_SIZE) continue;
+        if(!isInBound(x, y)) continue;
         if(bombs.count(x*BOARD_SIZE + y)) count++;
     }
     return count;
@@ -59,12 +59,19 @@ int countNeighborBombs(int r, int c){
  *
  * @return (r,c) is a bomb or not.
  */
-bool updateBoard(int r, int c){
+bool updateBoard(int r, int c, int flag=0){
+    // flag mode
+    if(flag){
+        if(board[r][c] == '@') board[r][c] = '!';
+        else if(board[r][c] == '!') board[r][c] = '@';
+        return false;
+    }
+
     // Clicked on a Bomb!
     if(bombs.count(r*BOARD_SIZE + c)) return true;
     
     // Update current pos: (r,c)
-    board[r][c] = countNeighborBombs(r, c) + '0';
+    board[r][c] = countNeighboringBombs(r, c) + '0';
     
     // Check 8 neighbors
     for(auto dir: dirs){
@@ -73,7 +80,7 @@ bool updateBoard(int r, int c){
         if(!isInBound(x, y)) continue;
         if(board[x][y] != '@' || bombs.count(x*BOARD_SIZE + y)) continue; // if (x,y) is visited or is a bomb, skip it
         
-        board[x][y] = countNeighborBombs(x, y) + '0';
+        board[x][y] = countNeighboringBombs(x, y) + '0';
         if(board[x][y] == '0') updateBoard(x, y); // ‘0'的八個鄰居都要打開
     }
 
@@ -85,7 +92,7 @@ bool checkGameCleared(){
     int count = 0;
     for(int i=0; i<BOARD_SIZE; i++){
         for(int j=0; j<BOARD_SIZE; j++){
-            if(board[i][j] == '@'){
+            if(board[i][j] == '@' || board[i][j] == '!'){
                 count++;
             }
         }
@@ -105,21 +112,37 @@ int main(){
     while(!hitBomb && !isGameCleared){
         showBoard();
 
+        int flag = 0;
         int r, c;
-        printf("Enter position (0 ~ %d):\n", BOARD_SIZE-1);
-        printf("row: ", BOARD_SIZE-1); cin >> r;
-        printf("column: ", BOARD_SIZE-1); cin >> c;
-        if(!isInBound(r, c)) continue; // Invalid input
+        printf("Enter position (1 ~ %d)\n", BOARD_SIZE);
+        printf("Flag? (1/0): "); cin >> flag;
+        if(cin.fail() || flag > 1 || flag < 0){
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(),'\n');
+            continue;
+        }
+        printf("row: "); cin >> r;
+        if(cin.fail()){
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(),'\n');
+            continue;
+        }
+        printf("column: "); cin >> c;
+        if(cin.fail()){
+            cin.clear();
+            cin.ignore(numeric_limits<streamsize>::max(),'\n');
+            continue;
+        }
+        if(!isInBound(r, c)) continue; // Invalid position
         cout << "=================" << endl;
         
-        hitBomb = updateBoard(r, c);
+        hitBomb = updateBoard(r, c, flag);
         isGameCleared = checkGameCleared();
     }
 
     showBoard(true);
     if(hitBomb) cout << "YOU HIT BOMB!" << endl;
     else if(isGameCleared) cout << "YOU WIN!" << endl;
-
-
+    
     return 0; 
 }
