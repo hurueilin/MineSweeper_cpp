@@ -133,6 +133,7 @@ int main(){
             cin.ignore(numeric_limits<streamsize>::max(),'\n');
             continue;
         }
+        r--; c--;
         if(!isInBound(r, c)) continue; // Invalid position
         cout << "=================" << endl;
         
